@@ -69,6 +69,7 @@ async def process_message(message: str) -> str:
             # dataパラメータを抽出
             udp_data = data.get("data", {})
             if udp_data:
+                logger.info(f"サーバーメッセージをUDPに転送: {udp_data}")
                 # UDPで送信
                 success = send_to_udp(udp_data)
                 if success:
@@ -108,7 +109,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
             logger.info(f"ポート8675からメッセージ受信: {message[:100]}...")
             
             # メッセージを処理（JSONパース、UDP送信など）
-            processed_message = process_message(message)
+            processed_message = await process_message(message)
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
@@ -148,7 +149,7 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
             logger.info(f"ポート8775からメッセージ受信: {message[:100]}...")
             
             # メッセージを処理（JSONパース、UDP送信など）
-            processed_message = process_message(message)
+            processed_message = await process_message(message)
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
