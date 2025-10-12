@@ -24,6 +24,8 @@ portB_clients: Set[WebSocketServerProtocol] = set()
 
 async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
     """ポート8675のクライアント接続を処理"""
+    global portA_clients, portB_clients
+    
     client_id = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
     logger.info(f"ポート8675にクライアント接続: {client_id}")
     
@@ -57,6 +59,8 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
 
 async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
     """ポート8775のクライアント接続を処理"""
+    global portA_clients, portB_clients
+    
     client_id = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
     logger.info(f"ポート8775にクライアント接続: {client_id}")
     
@@ -90,6 +94,8 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
 
 async def cleanup_clients():
     """定期的に切断されたクライアントをクリーンアップ"""
+    global portA_clients, portB_clients
+    
     while True:
         await asyncio.sleep(30)  # 30秒ごとにクリーンアップ
         
