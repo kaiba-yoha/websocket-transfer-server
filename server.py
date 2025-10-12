@@ -18,8 +18,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # クライアント管理用のセット
-port8675_clients: Set[WebSocketServerProtocol] = set()
-port8775_clients: Set[WebSocketServerProtocol] = set()
+portA_clients: Set[WebSocketServerProtocol] = set()
+portB_clients: Set[WebSocketServerProtocol] = set()
 
 
 async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
@@ -28,16 +28,16 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
     logger.info(f"ポート8675にクライアント接続: {client_id}")
     
     # クライアントをセットに追加
-    port8675_clients.add(websocket)
+    portA_clients.add(websocket)
     
     try:
         async for message in websocket:
             logger.info(f"ポート8675からメッセージ受信: {message[:100]}...")
             
             # 8775の全クライアントにブロードキャスト
-            if port8775_clients:
+            if portB_clients:
                 # 切断されたクライアントを除外
-                active_clients = [client for client in port8775_clients if not client.closed]
+                active_clients = [client for client in portB_clients if not client.closed]
                 if active_clients:
                     await websockets.broadcast(active_clients, message)
                     logger.info(f"ポート8775の{len(active_clients)}クライアントに転送完了")
@@ -52,7 +52,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
         logger.error(f"ポート8675でエラー: {e}")
     finally:
         # クライアントをセットから削除
-        port8675_clients.discard(websocket)
+        portA_clients.discard(websocket)
 
 
 async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
@@ -61,16 +61,16 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
     logger.info(f"ポート8775にクライアント接続: {client_id}")
     
     # クライアントをセットに追加
-    port8775_clients.add(websocket)
+    portB_clients.add(websocket)
     
     try:
         async for message in websocket:
             logger.info(f"ポート8775からメッセージ受信: {message[:100]}...")
             
             # 8675の全クライアントにブロードキャスト
-            if port8675_clients:
+            if portA_clients:
                 # 切断されたクライアントを除外
-                active_clients = [client for client in port8675_clients if not client.closed]
+                active_clients = [client for client in portA_clients if not client.closed]
                 if active_clients:
                     await websockets.broadcast(active_clients, message)
                     logger.info(f"ポート8675の{len(active_clients)}クライアントに転送完了")
@@ -85,7 +85,7 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
         logger.error(f"ポート8775でエラー: {e}")
     finally:
         # クライアントをセットから削除
-        port8775_clients.discard(websocket)
+        portB_clients.discard(websocket)
 
 
 async def cleanup_clients():
@@ -94,18 +94,18 @@ async def cleanup_clients():
         await asyncio.sleep(30)  # 30秒ごとにクリーンアップ
         
         # 切断されたクライアントを削除
-        port8675_clients.discard(None)
-        port8775_clients.discard(None)
+        portA_clients.discard(None)
+        portB_clients.discard(None)
         
         # 閉じられたクライアントを削除
-        closed_8675 = {client for client in port8675_clients if client.closed}
-        closed_8775 = {client for client in port8775_clients if client.closed}
+        closed_A = {client for client in portA_clients if client.closed}
+        closed_B = {client for client in portB_clients if client.closed}
         
-        port8675_clients -= closed_8675
-        port8775_clients -= closed_8775
+        portA_clients -= closed_A
+        portB_clients -= closed_B
         
-        if closed_8675 or closed_8775:
-            logger.info(f"クリーンアップ: 8675={len(closed_8675)}, 8775={len(closed_8775)}クライアント削除")
+        if closed_A or closed_B:
+            logger.info(f"クリーンアップ: 8675={len(closed_A)}, 8775={len(closed_B)}クライアント削除")
 
 
 async def main():
