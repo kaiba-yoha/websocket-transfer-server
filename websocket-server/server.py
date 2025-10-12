@@ -107,8 +107,8 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
         async for message in websocket:
             logger.info(f"ポート8675からメッセージ受信: {message[:100]}...")
             
-            # メッセージを処理（JSONパース、REST API送信など）
-            processed_message = await process_message(message)
+            # メッセージを処理（JSONパース、UDP送信など）
+            processed_message = process_message(message)
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
@@ -147,8 +147,8 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
         async for message in websocket:
             logger.info(f"ポート8775からメッセージ受信: {message[:100]}...")
             
-            # メッセージを処理（JSONパース、REST API送信など）
-            processed_message = await process_message(message)
+            # メッセージを処理（JSONパース、UDP送信など）
+            processed_message = process_message(message)
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
