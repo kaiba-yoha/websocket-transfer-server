@@ -1,147 +1,120 @@
 # WebSocket Transfer Server
 
-ポート8675と8775で待ち受け、相互にメッセージをブロードキャスト転送するWebSocketサーバーです。
+WebSocket転送サーバーとUDP受信プログラムの統合システムです。
 
-## 機能
+## プロジェクト構造
 
-- ポート8675と8775で同時にWebSocket接続を待ち受け
-- ポート8675に送信されたメッセージをポート8775の全クライアントに転送
-- ポート8775に送信されたメッセージをポート8675の全クライアントに転送
-- ブロードキャスト型の転送（1対多、多対多）
-- 適切なリソース管理（メモリリーク防止）
-- 基本的なログ出力
-
-## セットアップ
-
-### 1. 仮想環境の作成と有効化
-
-```bash
-# 仮想環境を作成
-python -m venv venv
-
-# 仮想環境を有効化
-# macOS/Linux:
-source venv/bin/activate
-# Windows:
-# venv\Scripts\activate
+```
+websocket-transfer-server/
+├── server/                 # WebSocket転送サーバー
+│   ├── server.py          # メインサーバー
+│   ├── requirements.txt   # 依存関係
+│   ├── setup.sh          # セットアップスクリプト
+│   └── README.md         # サーバー説明
+├── receiver/              # UDP受信プログラム
+│   ├── udp_receiver.py   # UDP受信サーバー
+│   ├── requirements.txt   # 依存関係
+│   └── README.md         # 受信プログラム説明
+└── README.md             # このファイル
 ```
 
-### 2. 依存関係のインストール
+## システム概要
 
-```bash
-pip install -r requirements.txt
-```
+### 1. WebSocket転送サーバー (`server/`)
+- ポート8675と8775でWebSocket接続を待ち受け
+- クライアント間でメッセージをブロードキャスト転送
+- JSONメッセージの`type: "POST"`を検出してUDP送信
+
+### 2. UDP受信プログラム (`receiver/`)
+- ポート8080でUDPメッセージを受信
+- JSONデータを解析・処理
+- カスタム処理ロジックを実装可能
 
 ## 使用方法
 
-### サーバーの起動
+### 1. WebSocket転送サーバーの起動
 
-#### HTTP接続（暗号化なし）
 ```bash
-python3 server.py
+cd server
+./setup.sh  # 初回のみ
+python server.py
 ```
 
-#### HTTPS接続（暗号化あり）
+### 2. UDP受信プログラムの起動
+
 ```bash
-# 自己署名証明書を生成
-./generate_ssl_cert.sh
-
-# SSL証明書を使用してサーバー起動
-python3 server.py --cert ssl_certs/server.crt --key ssl_certs/server.key
+cd receiver
+python udp_receiver.py
 ```
 
-#### カスタムポートでの起動
-```bash
-python3 server.py --port-a 8080 --port-b 8081
+### 3. クライアント接続
+
+- **ポート8675**: `ws://localhost:8675`
+- **ポート8775**: `ws://localhost:8775`
+
+## メッセージ形式
+
+### UDP送信用メッセージ
+```json
+{
+  "type": "POST",
+  "data": {
+    "key": "value",
+    "timestamp": "2025-01-01T00:00:00Z"
+  }
+}
 ```
 
-サーバーが起動すると以下のメッセージが表示されます：
-
-```
-WebSocket転送サーバーを起動中...
-サーバー起動完了:
-  ポート8675: ws://localhost:8675
-  ポート8775: ws://localhost:8775
-  終了するには Ctrl+C を押してください
+### 通常転送メッセージ
+```json
+{
+  "message": "Hello World",
+  "user": "client1"
+}
 ```
 
-### クライアントの接続
+## 動作フロー
 
-#### HTTP接続（暗号化なし）
-- ポート8675: `ws://<サーバーIP>:8675`
-- ポート8775: `ws://<サーバーIP>:8775`
+1. **WebSocketクライアント** → WebSocket転送サーバー
+2. **JSON解析** → `type: "POST"`を検出
+3. **UDP送信** → `127.0.0.1:8080`
+4. **UDP受信** → 受信プログラムで処理
+5. **通常メッセージ** → 他のWebSocketクライアントに転送
 
-#### HTTPS接続（暗号化あり）
-- ポート8675: `wss://<サーバーIP>:8675`
-- ポート8775: `wss://<サーバーIP>:8775`
+## 設定
 
-**外部接続の場合:**
-- サーバーのIPアドレスを`<サーバーIP>`に置き換えてください
-- 例: `ws://192.168.1.100:8675` または `wss://192.168.1.100:8675`
+### WebSocket転送サーバー
+- **ポート**: 8675, 8775
+- **UDP送信先**: `127.0.0.1:8080`
 
-### 動作例
+### UDP受信プログラム
+- **受信ポート**: 8080
+- **バッファサイズ**: 4096 bytes
 
-1. ポート8675にクライアントAが接続
-2. ポート8775にクライアントB、Cが接続
-3. クライアントAがメッセージを送信 → クライアントB、Cに転送
-4. クライアントBがメッセージを送信 → クライアントAに転送
+## 開発・カスタマイズ
 
-## ログ出力
+### UDP受信プログラムのカスタマイズ
 
-サーバーは以下の情報をログ出力します：
+`receiver/udp_receiver.py`の`process_received_data()`関数を編集：
 
-- クライアントの接続/切断
-- メッセージの受信/転送
-- エラー情報
-- 定期的なクリーンアップ情報
-
-## ファイアウォール設定
-
-外部からの接続を許可するには、以下のポートを開放してください：
-
-### Ubuntu/Debian (ufw)
-```bash
-sudo ufw allow 8675
-sudo ufw allow 8775
-sudo ufw reload
+```python
+def process_received_data(data: Dict[Any, Any]) -> None:
+    # データベース保存
+    # save_to_database(data)
+    
+    # 他のAPIに転送
+    # forward_to_api(data)
+    
+    # ファイル保存
+    # save_to_file(data)
+    
+    # カスタム処理
+    pass
 ```
-
-### CentOS/RHEL/Fedora (firewalld)
-```bash
-sudo firewall-cmd --permanent --add-port=8675/tcp
-sudo firewall-cmd --permanent --add-port=8775/tcp
-sudo firewall-cmd --reload
-```
-
-### iptables (直接設定)
-```bash
-sudo iptables -A INPUT -p tcp --dport 8675 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 8775 -j ACCEPT
-sudo iptables-save > /etc/iptables/rules.v4
-```
-
-## 終了方法
-
-`Ctrl+C` を押すとサーバーが安全に終了します。
-
-## SSL/TLS証明書について
-
-### 開発・テスト用
-```bash
-# 自己署名証明書を生成
-./generate_ssl_cert.sh
-```
-
-### 本番環境用
-- Let's Encryptなどの正式な証明書を使用
-- 証明書ファイル（.crt）と秘密鍵ファイル（.key）を用意
-- サーバー起動時に`--cert`と`--key`オプションで指定
 
 ## 技術仕様
 
-- **ライブラリ**: websockets (asyncio ベース)
+- **WebSocket**: websockets (asyncio ベース)
+- **UDP**: 標準socketライブラリ
+- **データ形式**: JSON
 - **Python**: 3.7以上
-- **プロトコル**: WebSocket (ws://) / WebSocket Secure (wss://)
-- **転送方式**: ブロードキャスト
-- **リソース管理**: 自動クリーンアップ（30秒間隔）
-- **SSL/TLS**: 対応（証明書指定時）
