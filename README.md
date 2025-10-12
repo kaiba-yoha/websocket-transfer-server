@@ -36,8 +36,23 @@ pip install -r requirements.txt
 
 ### サーバーの起動
 
+#### HTTP接続（暗号化なし）
 ```bash
-python server.py
+python3 server.py
+```
+
+#### HTTPS接続（暗号化あり）
+```bash
+# 自己署名証明書を生成
+./generate_ssl_cert.sh
+
+# SSL証明書を使用してサーバー起動
+python3 server.py --cert ssl_certs/server.crt --key ssl_certs/server.key
+```
+
+#### カスタムポートでの起動
+```bash
+python3 server.py --port-a 8080 --port-b 8081
 ```
 
 サーバーが起動すると以下のメッセージが表示されます：
@@ -52,12 +67,17 @@ WebSocket転送サーバーを起動中...
 
 ### クライアントの接続
 
+#### HTTP接続（暗号化なし）
 - ポート8675: `ws://<サーバーIP>:8675`
 - ポート8775: `ws://<サーバーIP>:8775`
 
+#### HTTPS接続（暗号化あり）
+- ポート8675: `wss://<サーバーIP>:8675`
+- ポート8775: `wss://<サーバーIP>:8775`
+
 **外部接続の場合:**
 - サーバーのIPアドレスを`<サーバーIP>`に置き換えてください
-- 例: `ws://192.168.1.100:8675`
+- 例: `ws://192.168.1.100:8675` または `wss://192.168.1.100:8675`
 
 ### 動作例
 
@@ -104,10 +124,24 @@ sudo iptables-save > /etc/iptables/rules.v4
 
 `Ctrl+C` を押すとサーバーが安全に終了します。
 
+## SSL/TLS証明書について
+
+### 開発・テスト用
+```bash
+# 自己署名証明書を生成
+./generate_ssl_cert.sh
+```
+
+### 本番環境用
+- Let's Encryptなどの正式な証明書を使用
+- 証明書ファイル（.crt）と秘密鍵ファイル（.key）を用意
+- サーバー起動時に`--cert`と`--key`オプションで指定
+
 ## 技術仕様
 
 - **ライブラリ**: websockets (asyncio ベース)
 - **Python**: 3.7以上
-- **プロトコル**: WebSocket
+- **プロトコル**: WebSocket (ws://) / WebSocket Secure (wss://)
 - **転送方式**: ブロードキャスト
 - **リソース管理**: 自動クリーンアップ（30秒間隔）
+- **SSL/TLS**: 対応（証明書指定時）

@@ -2,13 +2,15 @@
 """
 WebSocket Transfer Server
 ポート8675と8775で待ち受け、相互にメッセージをブロードキャスト転送するサーバー
+WSS（WebSocket Secure）対応
 """
 
 import asyncio
 import logging
+import ssl
 import websockets
 from websockets.server import WebSocketServerProtocol
-from typing import Set
+from typing import Set, Optional
 
 # ログ設定
 logging.basicConfig(
@@ -114,20 +116,56 @@ async def cleanup_clients():
             logger.info(f"クリーンアップ: 8675={len(closed_A)}, 8775={len(closed_B)}クライアント削除")
 
 
+def create_ssl_context(cert_file: Optional[str] = None, key_file: Optional[str] = None) -> Optional[ssl.SSLContext]:
+    """SSLコンテキストを作成"""
+    if not cert_file or not key_file:
+        logger.warning("SSL証明書が指定されていません。HTTP接続のみ利用可能です。")
+        return None
+    
+    try:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(cert_file, key_file)
+        logger.info(f"SSL証明書を読み込みました: {cert_file}")
+        return ssl_context
+    except Exception as e:
+        logger.error(f"SSL証明書の読み込みに失敗: {e}")
+        return None
+
+
 async def main():
     """メイン関数"""
+    import argparse
+    
+    # コマンドライン引数の解析
+    parser = argparse.ArgumentParser(description='WebSocket Transfer Server')
+    parser.add_argument('--cert', help='SSL証明書ファイル (.crt)')
+    parser.add_argument('--key', help='SSL秘密鍵ファイル (.key)')
+    parser.add_argument('--port-a', type=int, default=8675, help='ポートA (デフォルト: 8675)')
+    parser.add_argument('--port-b', type=int, default=8775, help='ポートB (デフォルト: 8775)')
+    args = parser.parse_args()
+    
     logger.info("WebSocket転送サーバーを起動中...")
     
+    # SSLコンテキストの作成
+    ssl_context = create_ssl_context(args.cert, args.key)
+    
     # 2つのサーバーを並行起動（外部接続を許可）
-    server_8675 = websockets.serve(handle_port8675, "0.0.0.0", 8675)
-    server_8775 = websockets.serve(handle_port8775, "0.0.0.0", 8775)
+    server_8675 = websockets.serve(handle_port8675, "0.0.0.0", args.port_a, ssl=ssl_context)
+    server_8775 = websockets.serve(handle_port8775, "0.0.0.0", args.port_b, ssl=ssl_context)
     
     # クリーンアップタスクを開始
     cleanup_task = asyncio.create_task(cleanup_clients())
     
+    # プロトコルを決定
+    protocol = "wss" if ssl_context else "ws"
+    
     logger.info("サーバー起動完了:")
-    logger.info("  ポート8675: ws://0.0.0.0:8675 (外部接続可能)")
-    logger.info("  ポート8775: ws://0.0.0.0:8775 (外部接続可能)")
+    logger.info(f"  ポート{args.port_a}: {protocol}://0.0.0.0:{args.port_a} (外部接続可能)")
+    logger.info(f"  ポート{args.port_b}: {protocol}://0.0.0.0:{args.port_b} (外部接続可能)")
+    if ssl_context:
+        logger.info("  SSL/TLS暗号化が有効です")
+    else:
+        logger.info("  SSL/TLS暗号化は無効です（HTTP接続のみ）")
     logger.info("  終了するには Ctrl+C を押してください")
     
     try:
