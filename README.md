@@ -52,8 +52,12 @@ WebSocket転送サーバーを起動中...
 
 ### クライアントの接続
 
-- ポート8675: `ws://localhost:8675`
-- ポート8775: `ws://localhost:8775`
+- ポート8675: `ws://<サーバーIP>:8675`
+- ポート8775: `ws://<サーバーIP>:8775`
+
+**外部接続の場合:**
+- サーバーのIPアドレスを`<サーバーIP>`に置き換えてください
+- 例: `ws://192.168.1.100:8675`
 
 ### 動作例
 
@@ -70,6 +74,31 @@ WebSocket転送サーバーを起動中...
 - メッセージの受信/転送
 - エラー情報
 - 定期的なクリーンアップ情報
+
+## ファイアウォール設定
+
+外部からの接続を許可するには、以下のポートを開放してください：
+
+### Ubuntu/Debian (ufw)
+```bash
+sudo ufw allow 8675
+sudo ufw allow 8775
+sudo ufw reload
+```
+
+### CentOS/RHEL/Fedora (firewalld)
+```bash
+sudo firewall-cmd --permanent --add-port=8675/tcp
+sudo firewall-cmd --permanent --add-port=8775/tcp
+sudo firewall-cmd --reload
+```
+
+### iptables (直接設定)
+```bash
+sudo iptables -A INPUT -p tcp --dport 8675 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 8775 -j ACCEPT
+sudo iptables-save > /etc/iptables/rules.v4
+```
 
 ## 終了方法
 

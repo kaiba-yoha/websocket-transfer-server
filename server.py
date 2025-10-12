@@ -112,16 +112,16 @@ async def main():
     """メイン関数"""
     logger.info("WebSocket転送サーバーを起動中...")
     
-    # 2つのサーバーを並行起動
-    server_8675 = websockets.serve(handle_port8675, "localhost", 8675)
-    server_8775 = websockets.serve(handle_port8775, "localhost", 8775)
+    # 2つのサーバーを並行起動（外部接続を許可）
+    server_8675 = websockets.serve(handle_port8675, "0.0.0.0", 8675)
+    server_8775 = websockets.serve(handle_port8775, "0.0.0.0", 8775)
     
     # クリーンアップタスクを開始
     cleanup_task = asyncio.create_task(cleanup_clients())
     
     logger.info("サーバー起動完了:")
-    logger.info("  ポート8675: ws://localhost:8675")
-    logger.info("  ポート8775: ws://localhost:8775")
+    logger.info("  ポート8675: ws://0.0.0.0:8675 (外部接続可能)")
+    logger.info("  ポート8775: ws://0.0.0.0:8775 (外部接続可能)")
     logger.info("  終了するには Ctrl+C を押してください")
     
     try:
