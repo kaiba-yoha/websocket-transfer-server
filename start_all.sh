@@ -60,7 +60,7 @@ main() {
     
     # 1. WebSocket転送サーバーの起動
     log_step "1. WebSocket転送サーバーを起動中..."
-    cd server
+    cd websocket-server
     
     # 依存関係の確認
     if [ ! -d "venv" ]; then
@@ -80,7 +80,7 @@ main() {
     
     # 2. UDP受信プログラムの起動
     log_step "2. UDP受信プログラムを起動中..."
-    cd ../receiver
+    cd ../processor
     
     # UDP受信プログラムをバックグラウンドで起動
     python udp_receiver.py &
