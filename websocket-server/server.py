@@ -56,7 +56,7 @@ def send_to_udp(data: Dict[Any, Any]) -> bool:
         return False
 
 
-async def process_message(message: str) -> str:
+async def process_message(message: str) -> str | None:
     """メッセージを処理（JSONパース、REST API送信など）"""
     try:
         # JSONパースを試行
@@ -71,11 +71,14 @@ async def process_message(message: str) -> str:
             if udp_data:
                 logger.info(f"サーバーメッセージをUDPに転送: {udp_data}")
                 # UDPで送信
-                success = send_to_udp(udp_data)
-                if success:
-                    logger.info("サーバーメッセージをUDPに転送完了")
-                else:
-                    logger.warning("UDPへの転送に失敗")
+                try:
+                    success = send_to_udp(udp_data)
+                    if success:
+                        logger.info("サーバーメッセージをUDPに転送完了")
+                    else:
+                        logger.warning("UDPへの転送に失敗")
+                except Exception as udp_error:
+                    logger.error(f"UDP送信エラー: {udp_error}")
             else:
                 logger.warning("UDPメッセージにdataパラメータがありません")
             
@@ -91,6 +94,7 @@ async def process_message(message: str) -> str:
         return message
     except Exception as e:
         logger.error(f"メッセージ処理エラー: {e}")
+        logger.error(f"エラー詳細: {type(e).__name__}: {str(e)}")
         return message
 
 
@@ -109,7 +113,12 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
             logger.info(f"ポート8675からメッセージ受信: {message[:100]}...")
             
             # メッセージを処理（JSONパース、UDP送信など）
-            processed_message = await process_message(message)
+            try:
+                processed_message = await process_message(message)
+            except Exception as e:
+                logger.error(f"process_message処理エラー: {e}")
+                logger.error(f"メッセージ内容: {message[:100]}...")
+                continue
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
@@ -149,7 +158,12 @@ async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
             logger.info(f"ポート8775からメッセージ受信: {message[:100]}...")
             
             # メッセージを処理（JSONパース、UDP送信など）
-            processed_message = await process_message(message)
+            try:
+                processed_message = await process_message(message)
+            except Exception as e:
+                logger.error(f"process_message処理エラー: {e}")
+                logger.error(f"メッセージ内容: {message[:100]}...")
+                continue
             
             # 処理されたメッセージがある場合のみ転送
             if processed_message is not None:
