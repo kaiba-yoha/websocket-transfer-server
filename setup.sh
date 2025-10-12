@@ -53,14 +53,36 @@ check_python() {
 prepare_system() {
     log_info "システム環境を準備中..."
     
-    # pip3が利用可能かチェック
-    if ! command -v pip3 &> /dev/null; then
-        log_error "pip3が見つかりません。Python3の開発パッケージをインストールしてください。"
-        log_info "Ubuntu/Debian: sudo apt-get install python3-pip python3-venv"
-        log_info "CentOS/RHEL: sudo yum install python3-pip"
-        log_info "Fedora: sudo dnf install python3-pip"
-        exit 1
+    # ディストリビューションを検出
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        DISTRO=$ID
+    else
+        DISTRO="unknown"
     fi
+    
+    log_info "検出されたディストリビューション: $DISTRO"
+    
+    # ディストリビューション別のパッケージ管理をチェック
+    case $DISTRO in
+        ubuntu|debian)
+            log_info "Ubuntu/Debian系を検出しました"
+            if ! command -v apt &> /dev/null; then
+                log_error "aptが見つかりません"
+                exit 1
+            fi
+            ;;
+        centos|rhel|fedora)
+            log_info "RedHat系を検出しました"
+            if ! command -v dnf &> /dev/null && ! command -v yum &> /dev/null; then
+                log_error "dnfまたはyumが見つかりません"
+                exit 1
+            fi
+            ;;
+        *)
+            log_warn "未知のディストリビューションです。手動でのインストールが必要かもしれません。"
+            ;;
+    esac
     
     log_info "システム環境の準備が完了しました"
 }
@@ -74,11 +96,59 @@ install_dependencies() {
         exit 1
     fi
     
-    # pip3を最新版にアップグレード
-    pip3 install --upgrade pip
-    
-    # 依存関係をシステム全体にインストール
-    pip3 install -r requirements.txt
+    # ディストリビューション別のインストール方法
+    case $DISTRO in
+        ubuntu|debian)
+            log_info "Ubuntu/Debian系でのインストールを実行中..."
+            
+            # まずaptでwebsocketsをインストールを試行
+            if apt list python3-websockets 2>/dev/null | grep -q "python3-websockets"; then
+                log_info "apt経由でwebsocketsをインストール中..."
+                sudo apt update
+                sudo apt install -y python3-websockets
+            else
+                log_warn "apt経由でのwebsocketsインストールが利用できません"
+                log_info "pipxまたはvenvを使用したインストールを試行中..."
+                
+                # pipxが利用可能かチェック
+                if command -v pipx &> /dev/null; then
+                    log_info "pipxを使用してインストール中..."
+                    pipx install websockets
+                else
+                    # pipxが利用できない場合は、--break-system-packagesフラグを使用
+                    log_warn "pipxが利用できません。--break-system-packagesフラグを使用します。"
+                    log_warn "注意: これはシステムのPython環境を変更します。"
+                    pip3 install --break-system-packages -r requirements.txt
+                fi
+            fi
+            ;;
+        centos|rhel|fedora)
+            log_info "RedHat系でのインストールを実行中..."
+            
+            # dnf/yumでwebsocketsをインストールを試行
+            if command -v dnf &> /dev/null; then
+                if dnf list python3-websockets 2>/dev/null | grep -q "python3-websockets"; then
+                    log_info "dnf経由でwebsocketsをインストール中..."
+                    sudo dnf install -y python3-websockets
+                else
+                    log_warn "dnf経由でのwebsocketsインストールが利用できません"
+                    pip3 install --break-system-packages -r requirements.txt
+                fi
+            elif command -v yum &> /dev/null; then
+                if yum list python3-websockets 2>/dev/null | grep -q "python3-websockets"; then
+                    log_info "yum経由でwebsocketsをインストール中..."
+                    sudo yum install -y python3-websockets
+                else
+                    log_warn "yum経由でのwebsocketsインストールが利用できません"
+                    pip3 install --break-system-packages -r requirements.txt
+                fi
+            fi
+            ;;
+        *)
+            log_warn "未知のディストリビューションです。pip3で直接インストールを試行中..."
+            pip3 install --break-system-packages -r requirements.txt
+            ;;
+    esac
     
     log_info "依存関係のインストールが完了しました"
 }
