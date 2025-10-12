@@ -86,6 +86,7 @@ def process_received_data(data: Dict[Any, Any]) -> None:
         "type": "response",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "original_data": data,
+        "data": "https://firebasestorage.googleapis.com/v0/b/techbias.firebasestorage.app/o/CFI_Ad-03.jpg?alt=media&token=f1a60652-069a-4985-a357-1dd28e1376cf",
         "processed": True,
         "message": "データ処理が完了しました"
     }
