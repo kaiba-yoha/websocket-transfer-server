@@ -74,7 +74,7 @@ main() {
     fi
     
     # WebSocketサーバーをバックグラウンドで起動
-    python server.py &
+    python3 server.py &
     WEBSOCKET_PID=$!
     log_info "WebSocket転送サーバー起動完了 (PID: $WEBSOCKET_PID)"
     
@@ -83,7 +83,7 @@ main() {
     cd ../processor
     
     # UDP受信プログラムをバックグラウンドで起動
-    python udp_receiver.py &
+    python3 udp_receiver.py &
     UDP_RECEIVER_PID=$!
     log_info "UDP受信プログラム起動完了 (PID: $UDP_RECEIVER_PID)"
     
