@@ -49,31 +49,20 @@ check_python() {
     fi
 }
 
-# 仮想環境の作成
-create_venv() {
-    log_info "仮想環境を作成中..."
+# システム環境の準備
+prepare_system() {
+    log_info "システム環境を準備中..."
     
-    if [ -d "venv" ]; then
-        log_warn "既存のvenvディレクトリが見つかりました。削除しますか？ (y/N)"
-        read -r response
-        if [[ "$response" =~ ^[Yy]$ ]]; then
-            rm -rf venv
-            log_info "既存のvenvディレクトリを削除しました"
-        else
-            log_info "既存のvenvディレクトリを使用します"
-            return 0
-        fi
+    # pip3が利用可能かチェック
+    if ! command -v pip3 &> /dev/null; then
+        log_error "pip3が見つかりません。Python3の開発パッケージをインストールしてください。"
+        log_info "Ubuntu/Debian: sudo apt-get install python3-pip python3-venv"
+        log_info "CentOS/RHEL: sudo yum install python3-pip"
+        log_info "Fedora: sudo dnf install python3-pip"
+        exit 1
     fi
     
-    python3 -m venv venv
-    log_info "仮想環境を作成しました"
-}
-
-# 仮想環境の有効化
-activate_venv() {
-    log_info "仮想環境を有効化中..."
-    source venv/bin/activate
-    log_info "仮想環境が有効化されました"
+    log_info "システム環境の準備が完了しました"
 }
 
 # 依存関係のインストール
@@ -85,11 +74,11 @@ install_dependencies() {
         exit 1
     fi
     
-    # pipを最新版にアップグレード
-    pip install --upgrade pip
+    # pip3を最新版にアップグレード
+    pip3 install --upgrade pip
     
-    # 依存関係をインストール
-    pip install -r requirements.txt
+    # 依存関係をシステム全体にインストール
+    pip3 install -r requirements.txt
     
     log_info "依存関係のインストールが完了しました"
 }
@@ -128,7 +117,7 @@ test_startup() {
     log_info "サーバーの起動テストを実行中..."
     
     # バックグラウンドでサーバーを起動
-    python server.py &
+    python3 server.py &
     SERVER_PID=$!
     
     # 3秒待機
@@ -155,8 +144,7 @@ show_usage() {
     echo "=========================================="
     echo ""
     echo "サーバーを起動するには:"
-    echo "  source venv/bin/activate"
-    echo "  python server.py"
+    echo "  python3 server.py"
     echo ""
     echo "または:"
     echo "  ./server.py"
@@ -176,8 +164,7 @@ main() {
     
     # 各ステップを実行
     check_python
-    create_venv
-    activate_venv
+    prepare_system
     install_dependencies
     check_server_file
     check_ports
