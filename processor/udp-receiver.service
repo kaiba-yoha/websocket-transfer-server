@@ -1,0 +1,37 @@
+[Unit]
+Description=UDP Receiver for WebSocket Transfer Server
+Documentation=https://github.com/your-repo/websocket-transfer-server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=websocket
+Group=websocket
+WorkingDirectory=/opt/websocket-transfer-server/processor
+ExecStart=/usr/bin/python3 udp_receiver.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=udp-receiver
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/websocket-transfer-server/processor
+ReadWritePaths=/var/log/websocket-transfer
+
+# リソース制限
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 環境変数
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/websocket-transfer-server/processor
+
+[Install]
+WantedBy=multi-user.target
