@@ -127,19 +127,14 @@ copy_files() {
     log_info "✓ ファイルをコピーしました"
 }
 
-# Python仮想環境のセットアップ
-setup_venv() {
-    log_step "Python仮想環境をセットアップ中..."
+# Python依存関係のインストール
+install_dependencies() {
+    log_step "Python依存関係をインストール中..."
     
-    cd $INSTALL_DIR/websocket-server
+    # システム全体に依存関係をインストール
+    pip3 install -r $INSTALL_DIR/websocket-server/requirements.txt
     
-    # 仮想環境の作成
-    sudo -u $SERVICE_USER python3 -m venv venv
-    
-    # 依存関係のインストール
-    sudo -u $SERVICE_USER $INSTALL_DIR/websocket-server/venv/bin/pip install -r requirements.txt
-    
-    log_info "✓ Python仮想環境をセットアップしました"
+    log_info "✓ Python依存関係をインストールしました"
 }
 
 # サービスファイルのインストール
@@ -246,7 +241,7 @@ main() {
     create_user
     setup_directories
     copy_files
-    setup_venv
+    install_dependencies
     install_services
     setup_logrotate
     check_firewall

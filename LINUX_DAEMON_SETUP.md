@@ -14,6 +14,7 @@
 - Python 3.6以上
 - pip3
 - root権限
+- システム全体にPython依存関係をインストール可能
 
 ## インストール手順
 
@@ -60,16 +61,11 @@ sudo cp -r processor /opt/websocket-transfer-server/
 sudo chown -R websocket:websocket /opt/websocket-transfer-server
 ```
 
-#### 2.4 Python仮想環境のセットアップ
+#### 2.4 Python依存関係のインストール
 
 ```bash
-cd /opt/websocket-transfer-server/websocket-server
-
-# 仮想環境の作成
-sudo -u websocket python3 -m venv venv
-
-# 依存関係のインストール
-sudo -u websocket venv/bin/pip install -r requirements.txt
+# システム全体に依存関係をインストール
+sudo pip3 install -r /opt/websocket-transfer-server/websocket-server/requirements.txt
 ```
 
 #### 2.5 systemdサービスのインストール
@@ -190,11 +186,11 @@ sudo firewall-cmd --reload
 
 2. **依存関係の確認**
    ```bash
-   # Python仮想環境の確認
-   sudo -u websocket /opt/websocket-transfer-server/websocket-server/venv/bin/python --version
+   # Pythonの確認
+   python3 --version
    
    # 依存関係の確認
-   sudo -u websocket /opt/websocket-transfer-server/websocket-server/venv/bin/pip list
+   pip3 list
    ```
 
 3. **権限の確認**
