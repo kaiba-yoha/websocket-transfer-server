@@ -33,6 +33,34 @@ UDP_RECEIVE_HOST = "127.0.0.1"
 UDP_RECEIVE_PORT = 8081  # WebSocketサーバーがUDPを受信するポート
 
 
+def is_websocket_open(connection: Any) -> bool:
+    """websockets のバージョン差異を吸収して接続が開いているか判定する。
+
+    優先順:
+      - connection.closed が bool ならその否定
+      - connection.open が bool ならその値
+      - connection.state の name が OPEN なら True
+      - 上記が取得できなければ True を返して楽観的に扱う
+    """
+    try:
+        closed_attr = getattr(connection, "closed", None)
+        if isinstance(closed_attr, bool):
+            return not closed_attr
+
+        open_attr = getattr(connection, "open", None)
+        if isinstance(open_attr, bool):
+            return open_attr
+
+        state_attr = getattr(connection, "state", None)
+        if state_attr is not None:
+            state_name = getattr(state_attr, "name", None)
+            if isinstance(state_name, str):
+                return state_name.upper() == "OPEN"
+    except Exception:
+        pass
+    return True
+
+
 def send_to_udp(data: Dict[Any, Any]) -> bool:
     """UDPでデータを送信"""
     try:
@@ -120,14 +148,14 @@ async def broadcast_to_all_clients(data: Dict[Any, Any]) -> None:
     
     # ポートAのクライアントにブロードキャスト
     if portA_clients:
-        active_clients_A = [client for client in portA_clients if not client.closed]
+        active_clients_A = [client for client in portA_clients if is_websocket_open(client)]
         if active_clients_A:
             await websockets.broadcast(active_clients_A, message)
             logger.info(f"ポートAの{len(active_clients_A)}クライアントにUDP返信をブロードキャスト")
     
     # ポートBのクライアントにブロードキャスト
     if portB_clients:
-        active_clients_B = [client for client in portB_clients if not client.closed]
+        active_clients_B = [client for client in portB_clients if is_websocket_open(client)]
         if active_clients_B:
             await websockets.broadcast(active_clients_B, message)
             logger.info(f"ポートBの{len(active_clients_B)}クライアントにUDP返信をブロードキャスト")
@@ -202,7 +230,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, *args):
                 # 8775の全クライアントにブロードキャスト
                 if portB_clients:
                     # 切断されたクライアントを除外
-                    active_clients = [client for client in portB_clients if not client.closed]
+                    active_clients = [client for client in portB_clients if is_websocket_open(client)]
                     if active_clients:
                         await websockets.broadcast(active_clients, processed_message)
                         logger.info(f"ポート8775の{len(active_clients)}クライアントに転送完了")
@@ -247,7 +275,7 @@ async def handle_port8775(websocket: WebSocketServerProtocol, *args):
                 # 8675の全クライアントにブロードキャスト
                 if portA_clients:
                     # 切断されたクライアントを除外
-                    active_clients = [client for client in portA_clients if not client.closed]
+                    active_clients = [client for client in portA_clients if is_websocket_open(client)]
                     if active_clients:
                         await websockets.broadcast(active_clients, processed_message)
                         logger.info(f"ポート8675の{len(active_clients)}クライアントに転送完了")
