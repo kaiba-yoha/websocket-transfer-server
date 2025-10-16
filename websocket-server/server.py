@@ -175,7 +175,7 @@ async def process_message(message: str) -> str | None:
         return message
 
 
-async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
+async def handle_port8675(websocket: WebSocketServerProtocol, path: str = ""):
     """ポート8675のクライアント接続を処理"""
     global portA_clients, portB_clients
     
@@ -220,7 +220,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str):
         portA_clients.discard(websocket)
 
 
-async def handle_port8775(websocket: WebSocketServerProtocol, path: str):
+async def handle_port8775(websocket: WebSocketServerProtocol, path: str = ""):
     """ポート8775のクライアント接続を処理"""
     global portA_clients, portB_clients
     
@@ -311,11 +311,12 @@ async def main():
     
     try:
         # 両方のサーバーとクリーンアップタスクを並行実行
-        await asyncio.gather(
-            server_8675,
-            server_8775,
-            cleanup_task
-        )
+        async with server_8675, server_8775:
+            await asyncio.gather(
+                server_8675.wait_closed(),
+                server_8775.wait_closed(),
+                cleanup_task
+            )
     except KeyboardInterrupt:
         logger.info("サーバーを停止中...")
         cleanup_task.cancel()
