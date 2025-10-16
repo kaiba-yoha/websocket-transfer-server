@@ -175,7 +175,7 @@ async def process_message(message: str) -> str | None:
         return message
 
 
-async def handle_port8675(websocket: WebSocketServerProtocol, path: str = ""):
+async def handle_port8675(websocket: WebSocketServerProtocol, *args):
     """ポート8675のクライアント接続を処理"""
     global portA_clients, portB_clients
     
@@ -220,7 +220,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, path: str = ""):
         portA_clients.discard(websocket)
 
 
-async def handle_port8775(websocket: WebSocketServerProtocol, path: str = ""):
+async def handle_port8775(websocket: WebSocketServerProtocol, *args):
     """ポート8775のクライアント接続を処理"""
     global portA_clients, portB_clients
     
@@ -310,11 +310,18 @@ async def main():
     logger.info("  終了するには Ctrl+C を押してください")
     
     try:
-        # 両方のサーバーとクリーンアップタスクを並行実行
-        async with server_8675, server_8775:
+        # websockets のバージョン差異に対応
+        # - 新しめ: Serve は async context manager
+        # - 古め  : Serve はそのまま await/gather 対象
+        if hasattr(server_8675, "__aenter__") and hasattr(server_8775, "__aenter__"):
+            async with server_8675, server_8775:
+                # 無限待機＋クリーンアップタスクを並行実行
+                await asyncio.gather(asyncio.Future(), cleanup_task)
+        else:
+            # 旧API互換: そのまま gather で待機
             await asyncio.gather(
-                server_8675.wait_closed(),
-                server_8775.wait_closed(),
+                server_8675,
+                server_8775,
                 cleanup_task
             )
     except KeyboardInterrupt:
