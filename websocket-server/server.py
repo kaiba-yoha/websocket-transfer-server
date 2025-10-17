@@ -324,12 +324,6 @@ async def main():
     udp_thread.start()
     logger.info("UDP受信サーバーを別スレッドで開始しました")
     
-    # 2つのサーバーを並行起動（外部接続を許可）
-    # websockets 10.x では、serve()は直接awaitできない
-    # 代わりに、各サーバーを個別に起動する
-    server_8675 = websockets.serve(handle_port8675, "0.0.0.0", 8675)
-    server_8775 = websockets.serve(handle_port8775, "0.0.0.0", 8775)
-    
     # クリーンアップタスクを開始
     cleanup_task = asyncio.create_task(cleanup_clients())
     
@@ -340,17 +334,12 @@ async def main():
     logger.info("  終了するには Ctrl+C を押してください")
     
     try:
-        # websockets 10.x では、サーバーを個別に起動して待機
-        # 各サーバーをタスクとして作成し、並行実行
-        task_8675 = asyncio.create_task(server_8675)
-        task_8775 = asyncio.create_task(server_8775)
-        
-        # 全てのタスクを並行実行
-        await asyncio.gather(
-            task_8675,
-            task_8775,
-            cleanup_task
-        )
+        # websockets 10.x では、serve()をawaitしてサーバーオブジェクトを取得し、
+        # async withで管理する
+        async with await websockets.serve(handle_port8675, "0.0.0.0", 8675), \
+                   await websockets.serve(handle_port8775, "0.0.0.0", 8775):
+            # サーバーが起動したら、無限待機
+            await cleanup_task
     except KeyboardInterrupt:
         logger.info("サーバーを停止中...")
         cleanup_task.cancel()
