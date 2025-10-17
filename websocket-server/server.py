@@ -305,8 +305,8 @@ async def cleanup_clients():
         portB_clients.discard(None)
         
         # 閉じられたクライアントを削除
-        closed_A = {client for client in portA_clients if client.closed}
-        closed_B = {client for client in portB_clients if client.closed}
+        closed_A = {client for client in portA_clients if not is_websocket_open(client)}
+        closed_B = {client for client in portB_clients if not is_websocket_open(client)}
         
         portA_clients -= closed_A
         portB_clients -= closed_B
