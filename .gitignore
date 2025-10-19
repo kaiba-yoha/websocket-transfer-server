@@ -34,6 +34,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+.env
 
 # OS
 .DS_Store
