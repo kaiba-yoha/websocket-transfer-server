@@ -334,10 +334,9 @@ async def main():
     logger.info("  終了するには Ctrl+C を押してください")
     
     try:
-        # websockets 10.x では、serve()をawaitしてサーバーオブジェクトを取得し、
-        # async withで管理する
-        async with await websockets.serve(handle_port8675, "0.0.0.0", 8675), \
-                   await websockets.serve(handle_port8775, "0.0.0.0", 8775):
+        # websockets 10.x では、serve()はコンテキストマネージャーとして使用
+        async with websockets.serve(handle_port8675, "0.0.0.0", 8675), \
+                   websockets.serve(handle_port8775, "0.0.0.0", 8775):
             # サーバーが起動したら、無限待機
             await cleanup_task
     except KeyboardInterrupt:
