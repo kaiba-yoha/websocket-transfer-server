@@ -54,9 +54,26 @@ cleanup() {
 # シグナルハンドリング
 trap cleanup SIGINT SIGTERM
 
+# 環境変数の設定
+setup_environment() {
+    log_step "環境変数を設定中..."
+    
+    # Gemini APIキーの確認
+    if [ -z "$GEMINI_API_KEY" ]; then
+        log_warn "GEMINI_API_KEYが設定されていません"
+        log_info "環境変数を設定してください: export GEMINI_API_KEY='your-api-key'"
+        log_info "または、.envファイルを作成して設定してください"
+    else
+        log_info "Gemini APIキーが設定されています"
+    fi
+}
+
 # メイン処理
 main() {
     log_step "WebSocket Transfer Server 統合システムを起動中..."
+    
+    # 環境変数の設定
+    setup_environment
     
     # 1. WebSocket転送サーバーの起動
     log_step "1. WebSocket転送サーバーを起動中..."

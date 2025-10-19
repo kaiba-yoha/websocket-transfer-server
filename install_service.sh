@@ -35,6 +35,61 @@ SERVICE_USER="websocket"
 SERVICE_GROUP="websocket"
 LOG_DIR="/var/log/websocket-transfer"
 
+# 環境変数設定
+GEMINI_API_KEY=""
+UDP_HOST="127.0.0.1"
+UDP_PORT="8080"
+UDP_RESPONSE_HOST="127.0.0.1"
+UDP_RESPONSE_PORT="8081"
+
+# 環境変数の設定
+setup_environment() {
+    log_step "環境変数を設定中..."
+    
+    # 既存の環境変数をチェック
+    if [ ! -z "$GEMINI_API_KEY_ENV" ]; then
+        GEMINI_API_KEY="$GEMINI_API_KEY_ENV"
+        log_info "✓ 環境変数からGemini APIキーを取得しました"
+    else
+        # ユーザーに入力を求める
+        echo ""
+        log_info "Gemini APIキーの設定が必要です"
+        log_info "Gemini APIキーを取得: https://makersuite.google.com/app/apikey"
+        echo ""
+        read -p "Gemini APIキーを入力してください: " GEMINI_API_KEY
+        
+        if [ -z "$GEMINI_API_KEY" ]; then
+            log_warn "APIキーが入力されませんでした。後で手動で設定してください"
+            GEMINI_API_KEY="your-gemini-api-key-here"
+        else
+            log_info "✓ Gemini APIキーを設定しました"
+        fi
+    fi
+    
+    # その他の設定を確認
+    read -p "UDPホスト (デフォルト: $UDP_HOST): " input_host
+    if [ ! -z "$input_host" ]; then
+        UDP_HOST="$input_host"
+    fi
+    
+    read -p "UDPポート (デフォルト: $UDP_PORT): " input_port
+    if [ ! -z "$input_port" ]; then
+        UDP_PORT="$input_port"
+    fi
+    
+    read -p "UDP返信ホスト (デフォルト: $UDP_RESPONSE_HOST): " input_response_host
+    if [ ! -z "$input_response_host" ]; then
+        UDP_RESPONSE_HOST="$input_response_host"
+    fi
+    
+    read -p "UDP返信ポート (デフォルト: $UDP_RESPONSE_PORT): " input_response_port
+    if [ ! -z "$input_response_port" ]; then
+        UDP_RESPONSE_PORT="$input_response_port"
+    fi
+    
+    log_info "✓ 環境変数設定が完了しました"
+}
+
 # 管理者権限チェック
 check_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -135,6 +190,59 @@ install_dependencies() {
     pip3 install -r $INSTALL_DIR/websocket-server/requirements.txt
     
     log_info "✓ Python依存関係をインストールしました"
+}
+
+# サービスファイルの更新
+update_service_files() {
+    log_step "サービスファイルを更新中..."
+    
+    # UDPレシーバーサービスの環境変数を更新
+    cat > $INSTALL_DIR/processor/udp-receiver.service << EOF
+[Unit]
+Description=UDP Receiver for WebSocket Transfer Server
+Documentation=https://github.com/your-repo/websocket-transfer-server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
+WorkingDirectory=$INSTALL_DIR/processor
+ExecStart=/usr/bin/python3 udp_receiver.py
+ExecReload=/bin/kill -HUP \$MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=udp-receiver
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$INSTALL_DIR/processor
+ReadWritePaths=$LOG_DIR
+
+# リソース制限
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 環境変数
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=$INSTALL_DIR/processor
+Environment=GEMINI_API_KEY=$GEMINI_API_KEY
+Environment=UDP_HOST=$UDP_HOST
+Environment=UDP_PORT=$UDP_PORT
+Environment=UDP_RESPONSE_HOST=$UDP_RESPONSE_HOST
+Environment=UDP_RESPONSE_PORT=$UDP_RESPONSE_PORT
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    log_info "✓ サービスファイルを更新しました"
 }
 
 # サービスファイルのインストール
@@ -238,10 +346,12 @@ main() {
     
     check_root
     check_requirements
+    setup_environment
     create_user
     setup_directories
     copy_files
     install_dependencies
+    update_service_files
     install_services
     setup_logrotate
     check_firewall
@@ -260,6 +370,13 @@ main() {
     log_info "  開始:     sudo systemctl start websocket-transfer udp-receiver"
     log_info "  再起動:   sudo systemctl restart websocket-transfer udp-receiver"
     log_info "  ログ確認: sudo journalctl -u websocket-transfer -u udp-receiver -f"
+    log_info ""
+    log_info "環境変数の設定:"
+    log_info "  Gemini APIキー: $GEMINI_API_KEY"
+    log_info "  UDPホスト: $UDP_HOST"
+    log_info "  UDPポート: $UDP_PORT"
+    log_info "  UDP返信ホスト: $UDP_RESPONSE_HOST"
+    log_info "  UDP返信ポート: $UDP_RESPONSE_PORT"
     log_info "=========================================="
 }
 

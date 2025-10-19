@@ -1,2 +1,4 @@
 # UDP Receiver の依存関係
-# 標準ライブラリのみ使用（追加の依存関係は不要）
+# AIテキスト編集機能のための依存関係（Gemini API使用）
+google-generativeai>=0.3.0
+requests>=2.25.0

@@ -32,6 +32,11 @@ LimitNPROC=4096
 # 環境変数
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONPATH=/opt/websocket-transfer-server/processor
+Environment=GEMINI_API_KEY=your-gemini-api-key-here
+Environment=UDP_HOST=127.0.0.1
+Environment=UDP_PORT=8080
+Environment=UDP_RESPONSE_HOST=127.0.0.1
+Environment=UDP_RESPONSE_PORT=8081
 
 [Install]
 WantedBy=multi-user.target
