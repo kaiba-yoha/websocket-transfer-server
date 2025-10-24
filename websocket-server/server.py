@@ -158,14 +158,14 @@ async def broadcast_to_all_clients(data: Dict[Any, Any]) -> None:
     if portA_clients:
         active_clients_A = [client for client in portA_clients if is_websocket_open(client)]
         if active_clients_A:
-            await websockets.broadcast(active_clients_A, message)
+            websockets.broadcast(active_clients_A, message)
             logger.info(f"ポートAの{len(active_clients_A)}クライアントにUDP返信をブロードキャスト")
     
     # ポートBのクライアントにブロードキャスト
     if portB_clients:
         active_clients_B = [client for client in portB_clients if is_websocket_open(client)]
         if active_clients_B:
-            await websockets.broadcast(active_clients_B, message)
+            websockets.broadcast(active_clients_B, message)
             logger.info(f"ポートBの{len(active_clients_B)}クライアントにUDP返信をブロードキャスト")
 
 
@@ -240,7 +240,7 @@ async def handle_port8675(websocket: WebSocketServerProtocol, *args):
                     # 切断されたクライアントを除外
                     active_clients = [client for client in portB_clients if is_websocket_open(client)]
                     if active_clients:
-                        await websockets.broadcast(active_clients, processed_message)
+                        websockets.broadcast(active_clients, processed_message)
                         logger.info(f"ポート8775の{len(active_clients)}クライアントに転送完了")
                     else:
                         logger.warning("ポート8775にアクティブなクライアントがありません")
@@ -285,7 +285,7 @@ async def handle_port8775(websocket: WebSocketServerProtocol, *args):
                     # 切断されたクライアントを除外
                     active_clients = [client for client in portA_clients if is_websocket_open(client)]
                     if active_clients:
-                        await websockets.broadcast(active_clients, processed_message)
+                        websockets.broadcast(active_clients, processed_message)
                         logger.info(f"ポート8675の{len(active_clients)}クライアントに転送完了")
                     else:
                         logger.warning("ポート8675にアクティブなクライアントがありません")
