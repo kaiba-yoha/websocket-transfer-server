@@ -93,6 +93,14 @@ def start_udp_receiver():
     """UDP受信サーバーを開始（返信用）"""
     logger.info(f"UDP受信サーバーを開始: {UDP_RECEIVE_HOST}:{UDP_RECEIVE_PORT}")
     
+    # メインスレッドのイベントループを取得
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # イベントループが存在しない場合は新しく作成
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
     # UDPソケットを作成
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((UDP_RECEIVE_HOST, UDP_RECEIVE_PORT))
@@ -113,7 +121,7 @@ def start_udp_receiver():
                     # WebSocketクライアントにブロードキャスト
                     asyncio.run_coroutine_threadsafe(
                         broadcast_to_all_clients(json_data),
-                        asyncio.get_event_loop()
+                        loop
                     )
                     
                 except json.JSONDecodeError as e:

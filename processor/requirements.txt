@@ -2,3 +2,15 @@
 # AIテキスト編集機能のための依存関係（Gemini API使用）
 google-generativeai>=0.3.0
 requests>=2.25.0
+
+# 画像処理・合成機能のための依存関係
+Pillow>=9.0.0
+opencv-python>=4.5.0
+numpy>=1.21.0
+
+# ストレージアップロード機能のための依存関係
+google-cloud-storage>=2.10.0
+boto3>=1.26.0
+
+# 画像ダウンロード機能のための依存関係
+requests>=2.25.0
